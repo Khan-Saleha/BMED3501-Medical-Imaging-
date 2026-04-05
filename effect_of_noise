@@ -134,14 +134,10 @@ for name, noisy_img in [('Original', image),
 # Radon Transform
     steps = 220
     sinogram = radon_transform(noisy_img, steps)
-    print(f"   Sinogram shape: {sinogram.shape}")
-    print(f"   Sinogram range: [{sinogram.min():.2f}, {sinogram.max():.2f}]")
     
     # 2) FBP reconstruction
     theta = np.linspace(0., 180., steps, endpoint=False)
     reconstruction_fbp = iradon_transform(sinogram, theta=theta, interpolation='cubic')
-    print(f"   Reconstruction shape: {reconstruction_fbp.shape}")
-    print(f"   Reconstruction range: [{reconstruction_fbp.min():.2f}, {reconstruction_fbp.max():.2f}]")
 
 # Store results
     results[name] = {
@@ -149,7 +145,6 @@ for name, noisy_img in [('Original', image),
         'sinogram': sinogram,
         'reconstruction': reconstruction_fbp
     }
-
 
 # ----------------------------
 # 5. save images
