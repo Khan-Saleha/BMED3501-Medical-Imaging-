@@ -172,7 +172,7 @@ ax2.set_ylabel("Projection position (pixels)")
 plt.show()
 # Reconstruction error
 error = reconstructions['ram-lak'] - image
-# Reconstruction error
+
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 ax1.set_title("FBP Reconstruction")
 ax1.imshow(reconstructions['ram-lak'], cmap='gray')
