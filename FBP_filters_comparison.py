@@ -77,7 +77,7 @@ def iradon_transform(radon_image, theta, filter_type='ram-lak', interpolation='l
     pad_width = ((0, proj_size_padded - radon_image.shape[0]), (0, 0))
     img = np.pad(radon_image, pad_width, mode='constant', constant_values=0)
 
-    # Create frequency axis (needed for filter selection)
+    # Create frequency axis 
     freqs = np.fft.fftfreq(proj_size_padded).reshape(-1, 1)
 
     # Select filter based on filter_type
@@ -99,7 +99,7 @@ def iradon_transform(radon_image, theta, filter_type='ram-lak', interpolation='l
     radon_filtered = np.real(np.fft.ifft(projection_fft, axis=0))
     radon_filtered = radon_filtered[:radon_image.shape[0], :]
 
-    # Backprojection (same as before)
+    # Backprojection 
     reconstructed = np.zeros((output_size, output_size), dtype=np.float64)
     X, Y = np.mgrid[0:output_size, 0:output_size]
     xpr = X - output_size // 2
@@ -131,7 +131,7 @@ def iradon_transform(radon_image, theta, filter_type='ram-lak', interpolation='l
 # 4. Main
 # ----------------------------
 # Load image
-imagename = r"C:\Users\giann\Downloads\BMED3501-Medical-Imaging--main\BMED3501-Medical-Imaging--main\images\sagittalslice.jpg"  # replace with your image path
+imagename = r"sagittalslice.jpg"  # replace with your image path
 image = imread(imagename)
 if image.ndim == 3:
     image = rgb2gray(image)
@@ -208,14 +208,10 @@ other_filters = [f for f in filters_to_test if f != 'ram-lak']
 #Original minus Filtered
 fig, axes = plt.subplots(2, 3, figsize=(15, 10))
 axes = axes.ravel()
-
-# Define a consistent intensity range for the differences
-# (Adjust v_range if the maps look too faded or too saturated)
 v_range = 0.15 
 
 for i, f in enumerate(filters_to_test):
     # Compute difference: Original - Reconstruction
-    # This shows exactly what information was lost or added by the filter
     diff = image - reconstructions[f]
     
     im = axes[i].imshow(diff, cmap='gray', vmin=-v_range, vmax=v_range)
@@ -225,7 +221,7 @@ for i, f in enumerate(filters_to_test):
     # Add colorbars to interpret the error magnitude
     plt.colorbar(im, ax=axes[i], fraction=0.046, pad=0.04)
 
-# Hide the last subplot if you only have 5 filters
+# Hide the last subplot 
 if len(filters_to_test) < 6:
     axes[5].axis('off')
 
@@ -241,12 +237,11 @@ for i, f in enumerate(other_filters):
     # Compute difference: Ram-Lak minus the current filter
     diff = reconstructions['ram-lak'] - reconstructions[f]
     
-    # Use 'seismic' (diverging) map: Red = Ram-Lak is higher, Blue = Other is higher
+    # Use gray map
     im = axes[i].imshow(diff, cmap='gray', vmin=-0.05, vmax=0.05)
     axes[i].set_title(f'Ram-Lak minus {f.capitalize()}')
     axes[i].axis('off')
     
-    # Add a colorbar to each subplot to show the magnitude of the difference
     fig.colorbar(im, ax=axes[i], fraction=0.046, pad=0.04)
 
 plt.suptitle('Difference Maps: Visualizing Filtering Effects', fontsize=16)
