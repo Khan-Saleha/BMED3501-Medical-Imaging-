@@ -39,6 +39,7 @@ imsave('poisson_noise.png', (poisson_noise * 255).astype(np.uint8))
 imsave('speckle_noise.png', (speckle_noise * 255).astype(np.uint8))
 
 ```
+
 ##pt 2: using the (modified) code to backproject
 import numpy as np
 import matplotlib.pyplot as plt
@@ -132,21 +133,24 @@ for name, noisy_img in [('Original', image),
 
 # Radon Transform
     steps = 220
-    sinogram = radon_transform(image, steps)
-
-# Theta angles
+    sinogram = radon_transform(noisy_img, steps)
+    print(f"   Sinogram shape: {sinogram.shape}")
+    print(f"   Sinogram range: [{sinogram.min():.2f}, {sinogram.max():.2f}]")
+    
+    # 2) FBP reconstruction
     theta = np.linspace(0., 180., steps, endpoint=False)
-    
-# FBP reconstruction
     reconstruction_fbp = iradon_transform(sinogram, theta=theta, interpolation='cubic')
-    
+    print(f"   Reconstruction shape: {reconstruction_fbp.shape}")
+    print(f"   Reconstruction range: [{reconstruction_fbp.min():.2f}, {reconstruction_fbp.max():.2f}]")
+
 # Store results
     results[name] = {
         'noisy': noisy_img,
         'sinogram': sinogram,
         'reconstruction': reconstruction_fbp
     }
-    
+
+
 # ----------------------------
 # 5. save images
 # ----------------------------
@@ -185,5 +189,3 @@ for idx, (name, data) in enumerate(results.items()):
 
 plt.tight_layout()
 plt.show()
-
-
