@@ -1,0 +1,25 @@
+import numpy as np
+import tomopy
+
+Assuming 'sino_clean' is your simulated, noise-free sinogram
+Scale the data to represent a realistic number of photons
+(e.g., average of 10,000 photons for a high-dose, 1,000 for a low-dose scan)
+I0 = 5000 # Incident photon count 
+sino_photons = I0 * np.exp(-sino_clean)
+
+Add Quantum (Poisson) Noise
+Use numpy's random.poisson to generate the noisy measurement
+noisy_photons = np.random.poisson(sino_photons)
+Calculate the measured attenuation (log transform)
+sino_quantum = -np.log(noisy_photons / I0)
+sino_quantum = np.nan_to_num(sino_quantum) # Replace any NaNs or infs from zero photons
+
+Add Electronic (Gaussian) Noise
+Add Gaussian noise with a chosen standard deviation (e.g., 0.1)
+noise_std = 0.1
+gaussian_noise = np.random.normal(loc=0.0, scale=noise_std, size=sino_quantum.shape)
+sino_noisy = sino_quantum + gaussian_noise
+
+The 'tomopy' library provides convenient functions for these:
+sino_noisy = tomopy.add_poisson(sino_clean)
+sino_noisy = tomopy.add_gaussian(sino_noisy, mean=0.0, std=noise_std)
