@@ -187,3 +187,78 @@ for idx, (name, data) in enumerate(results.items()):
 
 plt.tight_layout()
 plt.show()
+
+```
+
+## part 3 eval
+from skimage.metrics import mean_squared_error as mse
+from skimage.metrics import peak_signal_noise_ratio as psnr
+from skimage.metrics import structural_similarity as ssim
+from skimage.transform import resize
+import numpy as np
+
+# Helper function to compute RMSE from MSE
+def rmse_from_mse(mse_val):
+    return np.sqrt(mse_val)
+
+# -------------------------------------------------------------------
+# 1. Metrics for noisy images (before reconstruction)
+# -------------------------------------------------------------------
+print("\n" + "="*60)
+print("NOISY IMAGES (vs Original Phantom)")
+print("="*60)
+print(f"{'Noise type':15} | {'MSE':>10} | {'RMSE':>10} | {'PSNR (dB)':>10} | {'SSIM':>8}")
+print("-"*65)
+
+noisy_dict = {
+    'Gaussian': gaussian_noise,
+    'Salt & Pepper': sp_noise,
+    'Poisson': poisson_noise,
+    'Speckle': speckle_noise
+}
+
+# size conversion
+phantom_norm = phantom.astype(np.float64)
+if phantom_norm.max() > 1.0:
+    phantom_norm = phantom_norm / 255.0
+
+for name, noisy_img in noisy_dict.items():
+    noisy = noisy_img.astype(np.float64)
+    if noisy.max() > 1.0:
+        noisy = noisy / 255.0
+    
+    mse_val = mse(phantom_norm, noisy)
+    rmse_val = rmse_from_mse(mse_val)
+    psnr_val = psnr(phantom_norm, noisy, data_range=1.0)
+    ssim_val = ssim(phantom_norm, noisy, data_range=1.0)
+    
+    print(f"{name:15} | {mse_val:10.6f} | {rmse_val:10.6f} | {psnr_val:10.2f} | {ssim_val:8.4f}")
+
+# -------------------------------------------------------------------
+# 2. Metrics for reconstructed images (FBP results)
+# -------------------------------------------------------------------
+recon_original = results['Original']['reconstruction']
+ref_recon = (recon_original - recon_original.min()) / (recon_original.max() - recon_original.min())
+ref_recon = ref_recon.astype(np.float64)
+
+print("\n" + "="*60)
+print("RECONSTRUCTED IMAGES (vs Noise‑free Reconstruction)")
+print("="*60)
+print(f"{'Noise type':15} | {'MSE':>10} | {'RMSE':>10} | {'PSNR (dB)':>10} | {'SSIM':>8}")
+print("-"*65)
+
+for name, data in results.items():
+    if name == 'Original_reconstruction':
+        continue
+    recon = data['reconstruction'].astype(np.float64)
+    recon_norm = (recon - recon.min()) / (recon.max() - recon.min())
+    
+    # if recon_norm.shape != ref_recon.shape:
+    #     recon_norm = resize(recon_norm, ref_recon.shape, anti_aliasing=True, preserve_range=True)
+    
+    mse_val = mse(ref_recon, recon_norm)
+    rmse_val = rmse_from_mse(mse_val)
+    psnr_val = psnr(ref_recon, recon_norm, data_range=1.0)
+    ssim_val = ssim(ref_recon, recon_norm, data_range=1.0)
+    
+    print(f"{name:15} | {mse_val:10.6f} | {rmse_val:10.6f} | {psnr_val:10.2f} | {ssim_val:8.4f}")
