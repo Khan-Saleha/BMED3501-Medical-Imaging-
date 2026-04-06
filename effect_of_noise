@@ -2,7 +2,9 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from skimage.color import rgb2gray
 from skimage.util import random_noise
+from skimage.transform import rotate, resize
 from skimage import io  # if loading image
 
 phantom = io.imread('shepplogan.png')  # adjust path/format
@@ -125,16 +127,16 @@ def iradon_transform(radon_image, theta, interpolation='linear'):
 # Load image
 results = {}
 
-for name, noisy_img in [('Original', image), 
+for name, noisy_img in [('Original', phantom),
                         ('Gaussian', gaussian_noise),
-                        ('S&P', sp_noise), 
+                        ('S&P', sp_noise),
                         ('Poisson', poisson_noise),
                         ('Speckle', speckle_noise)]:
 
 # Radon Transform
     steps = 220
     sinogram = radon_transform(noisy_img, steps)
-    
+
     # 2) FBP reconstruction
     theta = np.linspace(0., 180., steps, endpoint=False)
     reconstruction_fbp = iradon_transform(sinogram, theta=theta, interpolation='cubic')
@@ -146,20 +148,21 @@ for name, noisy_img in [('Original', image),
         'reconstruction': reconstruction_fbp
     }
 
+
 # ----------------------------
 # 5. save images
 # ----------------------------
-
+for name, data in results.items(): 
 # Save sinogram (normalize to 0-255)
     sinogram_normalized = (data['sinogram'] - data['sinogram'].min()) / (data['sinogram'].max() - data['sinogram'].min())
     sinogram_img = (sinogram_normalized * 255).astype(np.uint8)
     imsave(f'{name}_sinogram.png', sinogram_img)
-    
+
 # Save reconstruction (normalize to 0-255)
     reconstruction_normalized = (data['reconstruction'] - data['reconstruction'].min()) / (data['reconstruction'].max() - data['reconstruction'].min())
     reconstruction_img = (reconstruction_normalized * 255).astype(np.uint8)
     imsave(f'{name}_reconstruction.png', reconstruction_img)
-  
+
 # ----------------------------
 # 6. Plot results
 # ----------------------------
@@ -170,13 +173,13 @@ for idx, (name, data) in enumerate(results.items()):
     axes[idx, 0].imshow(data['noisy'], cmap='gray')
     axes[idx, 0].set_title(f'{name} - Noisy')
     axes[idx, 0].axis('off')
-    
+
     # Sinogram
     axes[idx, 1].imshow(data['sinogram'], cmap='gray', aspect='auto')
     axes[idx, 1].set_title(f'{name} - Sinogram')
     axes[idx, 1].set_xlabel('Projection angle')
     axes[idx, 1].set_ylabel('Detector position')
-    
+
     # Reconstruction
     axes[idx, 2].imshow(data['reconstruction'], cmap='gray')
     axes[idx, 2].set_title(f'{name} - FBP Reconstruction')
