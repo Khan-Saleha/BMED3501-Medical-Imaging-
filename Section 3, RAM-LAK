@@ -1,0 +1,25 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+n_detectors = 512  # Number of detectors (can be any number)
+freqs = np.fft.fftfreq(n_detectors)
+ramp_filter = np.abs(freqs)
+
+positive_freqs = freqs[freqs >= 0]
+positive_ramp = ramp_filter[freqs >= 0]
+negative_freqs = freqs[freqs < 0]
+negative_ramp = ramp_filter[freqs < 0]
+# Plot
+plt.figure(figsize=(15, 8))
+plt.plot(positive_freqs, positive_ramp, 'g-', linewidth=2)
+plt.plot(negative_freqs, negative_ramp, 'g-', linewidth=2)
+plt.xlabel('Frequency', fontsize=12)
+plt.ylabel('Filter Magnitude', fontsize=12)
+plt.title('RAM-LAK Filter', fontsize=16)
+plt.grid(True, alpha=0.3)
+plt.axhline(y=0, color='k', linewidth=0.5)
+plt.axvline(x=0, color='k', linewidth=0.5)
+plt.xlim(-0.55, 0.55)
+plt.ylim(-0.05, 0.55)
+plt.show()
+
