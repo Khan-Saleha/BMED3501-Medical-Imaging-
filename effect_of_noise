@@ -2,10 +2,11 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from skimage import io 
 from skimage.color import rgb2gray
 from skimage.util import random_noise
 from skimage.transform import rotate, resize
-from skimage import io  # if loading image
+from sklearn.metrics import mean_squared_error
 
 phantom = io.imread('shepplogan.png')  # adjust path/format
 if phantom.ndim == 3:
@@ -13,31 +14,43 @@ if phantom.ndim == 3:
 phantom = resize(phantom, (220, 220), anti_aliasing=True)
 
 #Add Noise
+phantom_mean = np.mean(phantom)
+poisson_scalar = phantom_mean / 0.01
+# Apply custom poisson scaling
+poisson_noise = np.random.poisson(phantom * poisson_scalar) / poisson_scalar
+# Clip to valid image range [0, 1] just like random_noise does
+poisson_noise = np.clip(poisson_noise, 0.0, 1.0)
+
 gaussian_noise = random_noise(phantom, mode='gaussian', var=0.01)
-sp_noise = random_noise(phantom, mode='s&p', amount=0.03)
-poisson_noise = random_noise(phantom, mode='poisson')
-speckle_noise = random_noise(phantom, mode='speckle', var=0.1)
+sp_noise = random_noise(phantom, mode='s&p', amount=0.02)
+speckle_noise = random_noise(phantom, mode='speckle', var=0.2)
 
 #Plot
 fig, axes = plt.subplots(1, 5, figsize=(15, 5))
 axes[0].imshow(phantom, cmap='gray')
 axes[0].set_title('Original Phantom')
-axes[1].imshow(gaussian_noise, cmap='gray')
-axes[1].set_title('Gaussian Noise')
-axes[2].imshow(sp_noise, cmap='gray')
-axes[2].set_title('Salt & Pepper Noise')
-axes[3].imshow(poisson_noise, cmap='gray')
-axes[3].set_title('Poisson Noise')
+axes[1].imshow(poisson_noise, cmap='gray')
+axes[1].set_title('Poisson Noise')
+axes[2].imshow(gaussian_noise, cmap='gray')
+axes[2].set_title('Gaussian Noise')
+axes[3].imshow(sp_noise, cmap='gray')
+axes[3].set_title('Salt & Pepper Noise')
 axes[4].imshow(speckle_noise, cmap='gray')
 axes[4].set_title('Speckle Noise')
 
 plt.show()
 
+print("MSE Comparison:")
+print(f"Gaussian MSE:  {mean_squared_error(phantom, gaussian_noise):.4f}")
+print(f"S&P MSE:       {mean_squared_error(phantom, sp_noise):.4f}")
+print(f"Speckle MSE:   {mean_squared_error(phantom, speckle_noise):.4f}")
+print(f"Poisson MSE:   {mean_squared_error(phantom, poisson_noise):.4f}")
+
 # save images
 from skimage.io import imsave
+imsave('poisson_noise.png', (poisson_noise * 255).astype(np.uint8))
 imsave('gaussian_noise.png', (gaussian_noise * 255).astype(np.uint8))
 imsave('sp_noise.png', (sp_noise * 255).astype(np.uint8))
-imsave('poisson_noise.png', (poisson_noise * 255).astype(np.uint8))
 imsave('speckle_noise.png', (speckle_noise * 255).astype(np.uint8))
 
 ```
@@ -128,9 +141,9 @@ def iradon_transform(radon_image, theta, interpolation='linear'):
 results = {}
 
 for name, noisy_img in [('Original', phantom),
+                        ('Poisson', poisson_noise),
                         ('Gaussian', gaussian_noise),
                         ('S&P', sp_noise),
-                        ('Poisson', poisson_noise),
                         ('Speckle', speckle_noise)]:
 
 # Radon Transform
@@ -152,7 +165,7 @@ for name, noisy_img in [('Original', phantom),
 # ----------------------------
 # 5. save images
 # ----------------------------
-for name, data in results.items(): 
+for name, data in results.items():
 # Save sinogram (normalize to 0-255)
     sinogram_normalized = (data['sinogram'] - data['sinogram'].min()) / (data['sinogram'].max() - data['sinogram'].min())
     sinogram_img = (sinogram_normalized * 255).astype(np.uint8)
@@ -188,6 +201,7 @@ for idx, (name, data) in enumerate(results.items()):
 plt.tight_layout()
 plt.show()
 
+
 ```
 
 ## part 3 eval
@@ -211,9 +225,9 @@ print(f"{'Noise type':15} | {'MSE':>10} | {'RMSE':>10} | {'PSNR (dB)':>10} | {'S
 print("-"*65)
 
 noisy_dict = {
+    'Poisson': poisson_noise,
     'Gaussian': gaussian_noise,
     'Salt & Pepper': sp_noise,
-    'Poisson': poisson_noise,
     'Speckle': speckle_noise
 }
 
@@ -226,12 +240,12 @@ for name, noisy_img in noisy_dict.items():
     noisy = noisy_img.astype(np.float64)
     if noisy.max() > 1.0:
         noisy = noisy / 255.0
-    
+
     mse_val = mse(phantom_norm, noisy)
     rmse_val = rmse_from_mse(mse_val)
     psnr_val = psnr(phantom_norm, noisy, data_range=1.0)
     ssim_val = ssim(phantom_norm, noisy, data_range=1.0)
-    
+
     print(f"{name:15} | {mse_val:10.6f} | {rmse_val:10.6f} | {psnr_val:10.2f} | {ssim_val:8.4f}")
 
 # -------------------------------------------------------------------
@@ -252,13 +266,13 @@ for name, data in results.items():
         continue
     recon = data['reconstruction'].astype(np.float64)
     recon_norm = (recon - recon.min()) / (recon.max() - recon.min())
-    
+
     # if recon_norm.shape != ref_recon.shape:
     #     recon_norm = resize(recon_norm, ref_recon.shape, anti_aliasing=True, preserve_range=True)
-    
+
     mse_val = mse(ref_recon, recon_norm)
     rmse_val = rmse_from_mse(mse_val)
     psnr_val = psnr(ref_recon, recon_norm, data_range=1.0)
     ssim_val = ssim(ref_recon, recon_norm, data_range=1.0)
-    
+
     print(f"{name:15} | {mse_val:10.6f} | {rmse_val:10.6f} | {psnr_val:10.2f} | {ssim_val:8.4f}")
